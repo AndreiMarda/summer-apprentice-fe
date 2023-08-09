@@ -1,12 +1,3 @@
-// Imports
-import { addEvents, handleSearch } from './src/utils';
-import { createOrderItem } from './src/components/createOrderItem.js';
-import { getTicketCategories } from './src/components/api/getTicketCategories.js';
-import { removeLoader, addLoader } from './src/components/loader';
-import './src/mocks/handlers';
-
-let events = null;
-
 // Navigate to a specific URL
 function navigateTo(url) {
   history.pushState(null, null, url);
@@ -15,93 +6,31 @@ function navigateTo(url) {
 // HTML templates
 function getHomePageTemplate() {
   return `
-   <div id="content" class="hidden">
-      <img src="./src/assets/Endava.png" alt="summer">
-      <div class="flex flex-col items-center">
-        <div class="w-80">
-          <h1>Explore Events</h1>
-          <div class="filters flex flex-col">
-            <input type="text" id="filter-name" placeholder="Filter by name" class="px-4 mt-4 mb-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
-            <button id="filter-button" class="px-4 py-2 text-white filter-btn rounded-lg">Filter</button>
-          </div>
-        </div>
-      </div>
+   <div id="content" >
+      <img src="./src/assets/cluj_2560x1440.jpg" alt="summer">
+      <h2 class="textbox h2-over-image" text-center >Cluj-Napoca Events</h2>
       <div class="events flex items-center justify-center flex-wrap">
       </div>
-      <div class="cart"></div>
     </div>
   `;
 }
 
 function getOrdersPageTemplate() {
   return `
-      <div id="content" class="hidden">
-        <h1 class="text-2xl mb-4 mt-8 text-center">Purchased Tickets</h1>
-        <div class="purchases ml-6 mr-6">
-          <div class="bg-white px-4 py-3 gap-x-4 flex font-bold">
-            <span class="flex-1">Name</span>
-            <span class="flex-1 flex justify-end">Nr tickets</span>
-            <span class="flex-1">Category</span>
-            <span class="flex-1 hidden md:flex">Date</span>
-            <span class="w-12 text-center hidden md:flex">Price</span>
-            <span class="w-28 sm:w-8"></span>
-          </div>
-        </div>
-      </div>
+    <div id="content">
+    <h1 class="text-2xl mb-4 mt-8 text-center">Purchased Tickets</h1>
+    </div>
   `;
 }
-
-function liveSearch() {
-  const filterInput = document.querySelector('#filter-name');
-
-  if(filterInput) {
-    const searchValue = filterInput.value;
-    
-    if(searchValue) {
-      const filteredEvents = events.filter(event => event.name.toLowerCase().includes(searchValue.toLowerCase()));
-    
-      addEvents(filteredEvents);
-    }
+//added
+window.addEventListener('scroll', function() {
+  const h2 = document.querySelector('.h2-over-image');
+  if (window.scrollY > 50) {
+      h2.style.display = 'none';
+  } else {
+      h2.style.display = 'block';
   }
-
-}
-
-function setupFilterEvents() {
-  const nameFilterInput = document.querySelector('#filter-name');
-
-  if(nameFilterInput) {
-    const filterInterval = 500;
-
-    nameFilterInput.addEventListener('keyup', () => {
-      setTimeout(liveSearch, filterInterval);
-    });
-  }
-}
-
-function setupSearchEvents() {
-  const searchForm = document.querySelector('.search-form');
-  const searchInput = document.querySelector('.search-input');
-  const searchButton = document.querySelector('.search-button');
-  const eventSection = document.querySelector('.events');
-
-  
-  if(searchForm) {
-    searchForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const searchTerm = searchInput.value.trim().toLowerCase();
-      const resultsFound = await handleSearch(searchTerm);
-      if (!resultsFound) {
-        eventSection.innerHTML = 'No results found';
-      }
-    });
-  }
-
-  if(searchButton) {
-    searchButton.addEventListener('click', () => {
-      searchInput.classList.toggle('active');
-    });
-  }
-}
+});
 
 function setupNavigationEvents() {
   const navLinks = document.querySelectorAll('nav a');
@@ -137,59 +66,128 @@ function setupInitialPage() {
   renderContent(initialUrl);
 }
 
-async function fetchTicketEvents() {
-  const response = await fetch('/api/ticketEvents');
-  const data = await response.json();
-  return data;
-}
-
-async function fetchOrders() {
-  const response = await fetch('/api/orders');
-  const orders = await response.json();
-  return orders;
-}
-
-function renderHomePage() {
+async function renderHomePage() {
   const mainContentDiv = document.querySelector('.main-content-component');
   mainContentDiv.innerHTML = getHomePageTemplate();
 
-  setupFilterEvents();
-  setupSearchEvents();
-  addLoader();
+  console.log('function', fetchTicketEvents());
+  fetchTicketEvents().then((data)=>{
+    console.log('data', data);
+  });
 
-  fetchTicketEvents()
-    .then((data) => {
-      events = data;
-      setTimeout(() => {
-        removeLoader();
-      }, 200);
-      addEvents(events);
-    });
+  const eventsData = await fetchTicketEvents();
+
+  const eventsContainer = document.querySelector('.events');
+
+  eventsData.forEach(eventData => {
+    const eventCard = document.createElement('div');
+    eventCard.classList.add('event-card');
+    const contentMarkup = `
+      <div class = "eventCard">
+        <header>
+          <h2 class="event-title text-2xl font-bold">${eventData.eventName}</h2>
+        </header>
+        <div class="content">
+          
+          <p class="description text-gray-700">${eventData.eventDescription}</p>
+
+          <button class="buybutton text-black px-4 py-2 rounded mt-4 ">Buy Tickets</button>
+        </div>
+      </div>
+    `;
+
+    eventCard.innerHTML = contentMarkup;
+    eventsContainer.appendChild(eventCard);
+    
+  
+  });
+
+  const actions = document.createElement('div'); 
+    const categoriesOptions = ticketCategory.map( 
+      (ticketCategory) =>
+       `<option value = ${ticketCategory.id}> ${ticketCategory.Description} </option>`
+       );
+  
+       const ticketTypeMarkup = `
+      <h2 class = "text-lg font-bold mb-2"> Choose Ticket Type: </h2>
+      <select id = "ticketCategoryId" name = "ticketCategoryId">
+        <option value = "Standard">Standard</option>
+        <option value = "VIP">VIP</option>
+      </select>
+       `
+  actions.innerHTML = ticketTypeMarkup;
+  
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.min = '0';
+  input.value = '0';
+
+  input.addEventListener('blur', () => {
+    if(!input.value){
+      input.value = 0;
+    }
+  });
+
+  input.addEventListener('input', () =>{
+    const currentQuantity = parseInt(input.value);
+    if(currentQuantity >0){
+      addToCart.disabled = false;
+    } else {
+      addToCart.disabled = true;
+    }
+  });
+
+  quantity.appendChild(input);
+
+
 }
+
+async function fetchTicketEvents(){
+  const response = await fetch('https://localhost:7198/api/Event/GetAll');
+  const data=await response.json();
+  return data;
+}
+
+
+//Backend Connectivity
+// const apiEndpoint = 'http://localhost:5173/api/Event/GetAll';
+
+// fetch(apiEndpoint, {
+//   method: 'GET', 
+//   headers: {
+//     'Content-Type': 'application/json', 
+    
+//   },
+// })
+//   .then(response => {
+//     if (!response.ok) {
+//       throw new Error(`HTTP error! Status: ${response.status}`);
+//     }
+//     return response.json(); 
+//   })
+
+//   .then(data => {
+//     console.log('Response:', data);
+//   })
+
+//   .catch(error => {
+//     console.error('Fetch Error:', error);
+//   });
+
+// const createEventElement = (eventData, title) => {
+//  const{id, description, img, name, ticketCategories} = eventData;
+//  const eventDiv = document.createElement{'div'};
+
+
+
+// }
+
+
+
 
 function renderOrdersPage(categories) {
   const mainContentDiv = document.querySelector('.main-content-component');
   mainContentDiv.innerHTML = getOrdersPageTemplate();
-
-  const purchasesDiv = document.querySelector('.purchases');
-  addLoader();
-
-  if (purchasesDiv) {
-    fetchOrders()
-      .then((orders) => {
-        if (orders.length > 0) {
-          setTimeout(() => {
-            removeLoader();
-          }, 200);
-          orders.forEach((order) => {
-            const newOrder = createOrderItem(categories, order);
-            purchasesDiv.appendChild(newOrder);
-          });
-        } else {
-          removeLoader();
-        }
-      });
-  }
 }
 
 // Render content based on URL
@@ -200,20 +198,11 @@ function renderContent(url) {
   if (url === '/') {
     renderHomePage();
   } else if (url === '/orders') {
-    getTicketCategories()
-      .then((categories) => {
-        renderOrdersPage(categories);
-      })
-      .catch((error) => {
-        console.error('Error fetching ticket categories:', error);
-      });
+    renderOrdersPage()
   }
 }
 
-
 // Call the setup functions
-setupFilterEvents();
-setupSearchEvents();
 setupNavigationEvents();
 setupMobileMenuEvent();
 setupPopstateEvent();
