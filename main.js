@@ -82,15 +82,18 @@ async function renderHomePage() {
   eventsData.forEach(eventData => {
     const eventCard = document.createElement('div');
     eventCard.classList.add('event-card');
+    
     const contentMarkup = `
       <div class = "eventCard">
         <header>
-          <h2 class="event-title text-2xl font-bold">${eventData.eventName}</h2>
+          <h2 class = "event-title text-2xl font-bold">${eventData.eventName}</h2>
         </header>
-        <div class="content">
-          
-          <p class="description text-gray-700">${eventData.eventDescription}</p>
-
+        <div class = "content">
+          <p class = "description text-gray-700">${eventData.eventDescription}</p>
+          <p class = "description text-gray-700">Event Type: ${eventData.eventType}</p>
+          <p class = "description text-gray-700">Start date: ${eventData.startDate}</p>
+          <p class = "description text-gray-700">End date: ${eventData.endDate}</p>
+          <p class = "description text-gray-700">Venue: ${eventData.venue}</p> 
           <button class="buybutton text-black px-4 py-2 rounded mt-4 ">Buy Tickets</button>
         </div>
       </div>
@@ -98,14 +101,12 @@ async function renderHomePage() {
 
     eventCard.innerHTML = contentMarkup;
     eventsContainer.appendChild(eventCard);
-    
-  
   });
 
   const actions = document.createElement('div'); 
     const categoriesOptions = ticketCategory.map( 
       (ticketCategory) =>
-       `<option value = ${ticketCategory.id}> ${ticketCategory.Description} </option>`
+       `<option value = ${ticketCategory.TicketCategoryId}> ${ticketCategory.Description} </option>`
        );
   
        const ticketTypeMarkup = `
@@ -116,7 +117,9 @@ async function renderHomePage() {
       </select>
        `
   actions.innerHTML = ticketTypeMarkup;
+  eventCard.appendChild(actions);
   
+  const quantity = document.createElement('div');
   const input = document.createElement('input');
   input.type = 'number';
   input.min = '0';
@@ -130,6 +133,7 @@ async function renderHomePage() {
 
   input.addEventListener('input', () =>{
     const currentQuantity = parseInt(input.value);
+    const addToCart = eventCard.querySelector('.buybutton');
     if(currentQuantity >0){
       addToCart.disabled = false;
     } else {
@@ -139,50 +143,14 @@ async function renderHomePage() {
 
   quantity.appendChild(input);
 
-
 }
+  
 
 async function fetchTicketEvents(){
   const response = await fetch('https://localhost:7198/api/Event/GetAll');
-  const data=await response.json();
+  const data = await response.json();
   return data;
 }
-
-
-//Backend Connectivity
-// const apiEndpoint = 'http://localhost:5173/api/Event/GetAll';
-
-// fetch(apiEndpoint, {
-//   method: 'GET', 
-//   headers: {
-//     'Content-Type': 'application/json', 
-    
-//   },
-// })
-//   .then(response => {
-//     if (!response.ok) {
-//       throw new Error(`HTTP error! Status: ${response.status}`);
-//     }
-//     return response.json(); 
-//   })
-
-//   .then(data => {
-//     console.log('Response:', data);
-//   })
-
-//   .catch(error => {
-//     console.error('Fetch Error:', error);
-//   });
-
-// const createEventElement = (eventData, title) => {
-//  const{id, description, img, name, ticketCategories} = eventData;
-//  const eventDiv = document.createElement{'div'};
-
-
-
-// }
-
-
 
 
 function renderOrdersPage(categories) {
