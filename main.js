@@ -71,58 +71,81 @@ async function renderHomePage() {
   mainContentDiv.innerHTML = getHomePageTemplate();
 
   console.log('function', fetchTicketEvents());
-  fetchTicketEvents().then((data)=>{
-    console.log('data', data);
+  fetchTicketEvents()
+    .then((data) => {
+    addEventsOnPage(data);
+    // console.log('data', data);
   });
+}
 
-  const eventsData = await fetchTicketEvents();
+async function fetchTicketEvents(){
+  const response = await fetch('https://localhost:7198/api/Event/GetAll');
+  const data = await response.json();
+  return data;
+}
 
-  const eventsContainer = document.querySelector('.events');
 
-  eventsData.forEach(eventData => {
-    const eventCard = document.createElement('div');
-    eventCard.classList.add('event-card');
-    
-    const contentMarkup = `
-      <div class = "eventCard">
-        <header>
-          <h2 class = "event-title text-2xl font-bold">${eventData.eventName}</h2>
-        </header>
-        <div class = "content">
-          <p class = "description text-gray-700">${eventData.eventDescription}</p>
-          <p class = "description text-gray-700">Event Type: ${eventData.eventType}</p>
-          <p class = "description text-gray-700">Start date: ${eventData.startDate}</p>
-          <p class = "description text-gray-700">End date: ${eventData.endDate}</p>
-          <p class = "description text-gray-700">Venue: ${eventData.venue}</p> 
-          <button class="buybutton text-black px-4 py-2 rounded mt-4 ">Buy Tickets</button>
-        </div>
-      </div>
-    `;
+const addEventsOnPage = (events) => {
+  const eventDiv = document.querySelector('.events');
+  eventDiv.innerHTML = 'No events';
+  if (events.length){
+    eventDiv.innerHTML = '';
+    events.forEach(event => {
+      eventDiv.appendChild(createEventElement(event))
+    })
+  }
+}
 
-    eventCard.innerHTML = contentMarkup;
-    eventsContainer.appendChild(eventCard);
-  });
+const createEvent = (eventData) => {
+  const title = kebabCase(eventData.eventType.eventName);
+  const eventElement = createEventElement(eventData, title);
+  return eventElement;
+}
+
+
+const createEventElement = (eventData) => {
+  const {eventId, eventName, eventDescription, venue, startDate, endDate, ticketCategories} = eventData;
+  const eventDiv = document.createElement('div');
+  eventDiv.classList.add('eventCard');
+
+  const contentMarkup = `
+    <header>
+      <h2 class = "event-title text-2xl font-bold">${eventData.eventName}</h2>
+    </header>
+    <div class = "content">
+      <p class = "description text-gray-700">${eventData.eventDescription}</p>
+      <p class = "description text-gray-700">Event Type: ${eventData.eventType}</p>
+      <p class = "description text-gray-700">Start date: ${eventData.startDate}</p>
+      <p class = "description text-gray-700">End date: ${eventData.endDate}</p>
+      <p class = "description text-gray-700">Venue: ${eventData.venue}</p> 
+      <p class = "description text-gray-700"></p>
+          
+    </div>
+  `;
+
+  eventDiv.innerHTML = contentMarkup;
+
 
   const actions = document.createElement('div'); 
-    const categoriesOptions = ticketCategory.map( 
-      (ticketCategory) =>
-       `<option value = ${ticketCategory.TicketCategoryId}> ${ticketCategory.Description} </option>`
-       );
-  
-       const ticketTypeMarkup = `
-      <h2 class = "text-lg font-bold mb-2"> Choose Ticket Type: </h2>
-      <select id = "ticketCategoryId" name = "ticketCategoryId">
-        <option value = "Standard">Standard</option>
-        <option value = "VIP">VIP</option>
-      </select>
-       `
-  actions.innerHTML = ticketTypeMarkup;
-  eventCard.appendChild(actions);
+
+  const categoriesOptions = `<select name="ticketCategory">` +
+                              eventData.ticketCategories.map(ticket => `
+                            <option value="${ticket.ticketCategoryId}">
+                              ${ticket.Description} - ${ticket.price.toFixed(2)}
+                            </option>`
+                            ).join('') +
+                            `</select>`;
+
+                            
+    actions.innerHTML = categoriesOptions;
+
+    eventDiv.appendChild(actions);
   
   const quantity = document.createElement('div');
   const input = document.createElement('input');
   input.type = 'number';
   input.min = '0';
+  input.max = '10';
   input.value = '0';
 
   input.addEventListener('blur', () => {
@@ -143,14 +166,75 @@ async function renderHomePage() {
 
   quantity.appendChild(input);
 
-}
-  
+  const quantityAction = document.createElement('div');
 
-async function fetchTicketEvents(){
-  const response = await fetch('https://localhost:7198/api/Event/GetAll');
-  const data = await response.json();
-  return data;
+  const increase = document.createElement('button');
+  increase.classList.add('increaseBtn');
+  increase.innerText = '+';
+  increase.addEventListener('click', () => {
+  input.value = parseInt(input.value) + 1;
+  const currentQuantity = parseInt(input.value);
+  if(currentQuantity > 0){
+    addToCartBtn.disabled = false;
+  } else {
+    addToCartBtn.disabled = true;
+  }
+  });
+
+  const decrease = document.createElement('button');
+    decrease.classList.add('decreaseBtn');
+    decrease.innerText = '-';
+    decrease.addEventListener('click', () => {
+    const currentValue = parseInt(input.value);
+    if(currentValue > 0){
+      input.value = currentValue - 1;
+    }
+    const currentQuantity = parseInt(input.value);
+    if(currentQuantity > 0){
+      addToCartBtn.disabled = false;
+    } else {
+      addToCartBtn.disabled = true;
+    }
+  });
+
+  quantityAction.appendChild(increase);
+  quantityAction.appendChild(decrease);
+
+  quantity.appendChild(quantityAction);
+  actions.appendChild(quantity);
+  eventDiv.appendChild(actions);
+
+  const label = document.createElement('label');
+  label.textContent = 'Number of tickets: ';
+  label.appendChild(input);
+
+  eventDiv.appendChild(label);
+
+  const eventFooter = document.createElement('footer');
+  const addToCartBtn = document.createElement('button');
+  addToCartBtn.textContent = 'Buy Ticket';
+  addToCartBtn.classList.add('add-to-cart-btn');
+  addToCartBtn.addEventListener('click', () => {
+    const selectedTicketCategoryRadio = document.querySelector(`input[name="ticketCategory-${eventId}"]:checked`);
+    if (!selectedTicketCategoryRadio) {
+      alert('Please select a ticket category');
+      return;
+    } else{
+      handleAddToCart(eventId,input,selectedTicketCategoryRadio,addToCartBtn);
+    }
+  });
+
+  eventFooter.appendChild(addToCartBtn);
+  eventDiv.appendChild(eventFooter);
+
+  return eventDiv;
 }
+
+//IMPLEMENT THIS
+// handleAddToCart
+
+
+
 
 
 function renderOrdersPage(categories) {
